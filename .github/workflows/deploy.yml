@@ -1,0 +1,48 @@
+name: Deploy QA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-qa
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy Hello World to qa
+    runs-on: ubuntu-latest
+    environment:
+      name: qa
+      url: https://jibekgupta.github.io/TRE-QA/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build static site
+        run: |
+          mkdir -p _site
+          cp hello-world/index.html hello-world/styles.css _site/
+          sed -i \
+            -e 's/__ENV__/QA/g' \
+            -e 's/__ENV_SLUG__/qa/g' \
+            -e 's/__REPO__/TRE-QA/g' \
+            -e 's/__CICD__/manual promote from DEV plus workflow_dispatch/g' \
+            _site/index.html
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
